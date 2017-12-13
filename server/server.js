@@ -1,66 +1,27 @@
-const mongoose = require('mongoose');
+const express = require('express');
+const bodyParser = require('body-parser');
 
-mongoose.Promise = global.Promise;
-mongoose.connect('mongodb://localhost:27017/TodoApp');
+const {mongoose} = require('./db/mongoose');
+const {Todo} = require('./models/todo');
+const {User} = require('./models/user');
 
-let Todo = mongoose.model('Todo',{
-    text:{
-        type: String,
-        required: true,
-        minlength:1,
-        trim: true
-    },
-    completed:{
-        type: Boolean,
-        default: false 
-    },
 
-    completedAt:{
-        type:Number,
-        default: null
-    }
+
+let app = express();
+app.use(bodyParser.json())
+
+app.post('/todos', (req, res)=>{
+    let todo = new Todo({
+        text: req.body.text
+    });
+
+    todo.save().then((doc)=>{
+        res.send(doc); //This returns the object with new information like id 
+    },(e)=>{
+        res.status(400).send(e)
+    })
 });
 
-// let newTodo = new Todo({
-//     text: 'Cook diner'
-// });
-
-// newTodo.save().then((doc)=>{
-//     console.log('saved todo', doc)
-// }, (e)=>{
-//     console.log('Unable to save todo');
-// })
-
-// let newTodo = new Todo({
-//     text:' Edit this video  '
-// });
-
-// //NB Remember type type conversion applies. for example text set to true will result in true being converted to a string.
-
-// newTodo.save().then((doc)=>{
-//     console.log(JSON.stringify(doc, undefined, 2));
-// }, (e)=>{
-//     console.log('Unable to save file',e);
-//});
-
-//User 
-//email -required - trim, set type, set min length of 1 
-
-let User = mongoose.model('User',{
-    email:{
-        type: String,
-        required:true,
-        minlength: 1,
-        trim:true
-    }
-});
-
-let newUser = new User({
-    email:'johndoe@forexample.com'
-});
-
-newUser.save().then((doc)=>{
-    console.log(JSON.stringify(doc, undefined, 2));
-},(e)=>{
-    ('Unable to save file', e)
+app.listen(3000, ()=>{
+    console.log('Started on port 3000')
 });
