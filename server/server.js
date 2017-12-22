@@ -33,7 +33,7 @@ app.get('/todos',(req,res)=>{
 //Get /todos/123
 
 app.get('/todos/:id',(req, res)=>{
-    let id = req.params.id
+    let id = req.params.id;
     
     
     if(!ObjectID.isValid(id)){
@@ -47,6 +47,33 @@ app.get('/todos/:id',(req, res)=>{
         res.send({todo});
       }).catch((e)=> res.status(400).send())
 });
+
+app.delete('/todos/:id', (req, res)=>{
+    let id = req.params.id;
+
+    if(!ObjectID.isValid(id)){
+        return res.status(404).send();
+    }
+
+    Todo.findByIdAndRemove(id).then((todo)=>{
+        if(!todo){
+            return res.status(404).send();
+        }
+         res.status(200).send({todo});
+         
+    }).catch((e)=> res.status(404).send());
+
+    //valaidate the id --> return a 404
+
+    //remove todo by id
+        //success 
+            //if no doc send 404
+            //if doc, send doc with 200
+            //we need to run 200 because function will run success even if there is no file deleted 
+
+        //error
+            //400 with empty body
+})
 
 app.listen(port, ()=>{
     console.log(`Started up at port ${port}`)
