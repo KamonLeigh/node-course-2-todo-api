@@ -55,9 +55,30 @@ UserSchema.methods.generateAuthToken = function (){
         return token;
     });
 }
-//This allows you to add instances 
+//This allows you to add instances
+
+UserSchema.statics.findByToken = function (token){
+    let User = this;
+    let decoded;
+
+    try{
+        decoded = jwt.verify(token, 'abc123')
+    } catch (e){
+        // return new Promise((resolve, reject)=>{
+        //     reject();
+            return Promise.reject();
+    }
+
+    return User.findOne({
+        '_id': decoded._id,
+        'tokens.token':token,
+        'tokens.access':'auth'
+
+    })
+};
 
 
+//This alows you add on the model method
 let User = mongoose.model('User', UserSchema);
 
 module.exports ={
