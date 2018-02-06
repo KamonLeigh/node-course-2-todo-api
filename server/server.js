@@ -16,28 +16,28 @@ const port = process.env.PORT;
 let app = express();
 app.use(bodyParser.json())
 
-app.post('/todos',authenticate, (req, res)=>{
-    let todo = new Todo({
+app.post('/todos',authenticate, async (req, res)=>{
+    const todo = new Todo({
         text: req.body.text,
         _creator:req.user._id
     });
-
-    todo.save().then((doc)=>{
-        res.send(doc); //This returns the object with new information like id 
-    },(e)=>{
+    try {
+        const doc = await todo.save()
+        res.send(doc);
+    } catch(e){
         res.status(400).send(e)
-    })
+    }
 });
 
-app.get('/todos',authenticate,(req,res)=>{
-    Todo.find({
-        _creator:req.user._id
-    }).then((todos)=>{
-        res.send({todos}) //by sending an object this allows greater flexibility
-    },(e)=>{
+app.get('/todos',authenticate, async (req,res)=>{
+    try{
+        const todos = await Todo.find({ _creator:req.user._id});
+        res.send({todos});
+    } catch(e){
         res.status(400).send(e);
-    })
-})
+    }
+});
+    
 
 //Get /todos/123
 
@@ -60,23 +60,24 @@ app.get('/todos/:id',authenticate,(req, res)=>{
       }).catch((e)=> res.status(400).send())
 });
 
-app.delete('/todos/:id',authenticate, (req, res)=>{
-    let id = req.params.id;
 
-    if(!ObjectID.isValid(id)){
-        return res.status(404).send();
-    }
-
-    Todo.findOneAndRemove({
-        _id:id,
-        _creator:req.user.id
-    }).then((todo)=>{
-        if(!todo){
+//convert to async 
+app.delete('/todos/:id',authenticate, async (req, res)=>{
+    
+        const id = req.params.id;
+         if(!ObjectID.isValid(id)){
             return res.status(404).send();
-        }
-         res.status(200).send({todo});
-         
-    }).catch((e)=> res.status(404).send());
+            }
+        try {
+             const todo = await Todo.findOneAndRemove({ _id:id, _creator:req.user.id});
+            if(!todo){
+                return res.status(404).send();
+            }
+            res.status(200).send({todo});
+    } catch(e){
+        res.status(404).send();
+    }
+})
 
     //valaidate the id --> return a 404
 
@@ -88,7 +89,6 @@ app.delete('/todos/:id',authenticate, (req, res)=>{
 
         //error
             //400 with empty body
-})
 
 app.patch('/todos/:id', authenticate, (req,res)=>{
     let id = req.params.id;
@@ -114,32 +114,31 @@ app.patch('/todos/:id', authenticate, (req,res)=>{
         res.status(400).send();
     })
 });
-
-app.post('/users',(req, res)=>{
-    let body = _.pick(req.body,['email', 'password']);
-    let user = new User(body);
-
-    user.save().then(()=>{
-        return user.generateAuthToken();
-    }).then((token)=>{
-        res.header('x-auth',token).send(user);
-    }).catch((e)=> {
+//Convert this
+app.post('/users', async (req, res)=>{
+    const body = _.pick(req.body,['email', 'password']);
+    const user = new User(body);
+    try{
+        await  user.save();
+        const token = await user.generateAuthToken();
+        res.header('x-auth',token).send(user);     
+    } catch(e){
         res.status(400).send(e)
-    });
+    }
 });
 
 //POST/users/login {email, password}
 
-app.post('/users/login', (req, res)=>{
-    let body = _.pick(req.body,['email','password']);
+app.post('/users/login', async (req, res)=>{   
+    try{
+    const body = _.pick(req.body,['email','password']);
+    const user = await User.findByCredentials(body.email, body.password);
+    const token =  await user.generateAuthToken();
 
-    User.findByCredentials(body.email, body.password).then((user)=>{
-        return user.generateAuthToken().then((token)=>{
-            res.header('x-auth',token).send(user);
-            })
-        }).catch((e)=>{
+        res.header('x-auth',token).send(user);
+    } catch(e){
         res.status(400).send();
-    });
+    }
 });
 
 app.get('/users/me', authenticate, (req, res)=>{
@@ -147,13 +146,16 @@ app.get('/users/me', authenticate, (req, res)=>{
 });
 
 
-app.delete('/users/me/token', authenticate, (req, res)=>{
-    req.user.removeToken(req.token).then(()=>{
+app.delete('/users/me/token', authenticate, async (req, res)=>{
+    
+    try{
+        await req.user.removeToken(req.token);
         res.status(200).send();
-    },()=>{
+    } catch(e){
         res.status(400).send();
-    })
-})
+    }
+});
+
 app.listen(port, ()=>{
     console.log(`Started up at port ${port}`)
 })
